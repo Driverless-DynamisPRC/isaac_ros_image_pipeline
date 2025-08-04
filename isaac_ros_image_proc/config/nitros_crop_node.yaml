@@ -16,12 +16,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 ---
-name: input_compositor
+name: sync
 components:
 - name: image_in
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: image_in
@@ -29,7 +29,46 @@ components:
 - name: cam_info_in
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
+    capacity: 12
+- type: nvidia::gxf::MessageAvailableSchedulingTerm
+  parameters:
+    receiver: cam_info_in
+    min_size: 1
+- name: image_out
+  type: nvidia::gxf::DoubleBufferTransmitter
+  parameters:
+    capacity: 12
+- type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
+  parameters:
+    transmitter: image_out
+    min_size: 1
+- name: cam_info_out
+  type: nvidia::gxf::DoubleBufferTransmitter
+  parameters:
+    capacity: 12
+- type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
+  parameters:
+    transmitter: cam_info_out
+    min_size: 1
+- type: nvidia::gxf::Synchronization
+  parameters:
+    inputs: [image_in, cam_info_in]
+    outputs: [image_out, cam_info_out]
+---
+name: input_compositor
+components:
+- name: image_in
+  type: nvidia::gxf::DoubleBufferReceiver
+  parameters:
+    capacity: 12
+- type: nvidia::gxf::MessageAvailableSchedulingTerm
+  parameters:
+    receiver: image_in
+    min_size: 1
+- name: cam_info_in
+  type: nvidia::gxf::DoubleBufferReceiver
+  parameters:
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: cam_info_in
@@ -37,7 +76,7 @@ components:
 - name: out
   type: nvidia::gxf::DoubleBufferTransmitter
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
   parameters:
     transmitter: out
@@ -124,12 +163,31 @@ components:
     output_adapter: resource/adapter
     output_name: "image"
 ---
+name: streamsync
+components:
+  - name: rx
+    type: nvidia::gxf::DoubleBufferReceiver
+  - name: tx
+    type: nvidia::gxf::DoubleBufferTransmitter
+  - type: nvidia::gxf::MessageAvailableSchedulingTerm
+    parameters:
+      receiver: rx
+      min_size: 1
+  - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
+    parameters:
+      transmitter: tx
+      min_size: 1
+  - type: nvidia::gxf::CudaStreamSync
+    parameters:
+      rx: rx
+      tx: tx
+---
 name: splitter
 components:
 - name: data_receiver
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 2
+    capacity: 1
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: data_receiver
@@ -163,10 +221,10 @@ components:
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
     capacity: 1
-- type: nvidia::gxf::MessageAvailableSchedulingTerm
-  parameters:
-    receiver: signal
-    min_size: 1
+#- type: nvidia::gxf::MessageAvailableSchedulingTerm
+#  parameters:
+#    receiver: signal
+#    min_size: 1
 - name: sink
   type: nvidia::isaac_ros::MessageRelay
   parameters:
@@ -178,10 +236,10 @@ components:
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
     capacity: 1
-- type: nvidia::gxf::MessageAvailableSchedulingTerm
-  parameters:
-    receiver: signal
-    min_size: 1
+#- type: nvidia::gxf::MessageAvailableSchedulingTerm
+#  parameters:
+#    receiver: signal
+#    min_size: 1
 - name: sink
   type: nvidia::isaac_ros::MessageRelay
   parameters:
@@ -195,6 +253,14 @@ components:
     message_type: "VideoBuffer"
 ---
 components:
+- type: nvidia::gxf::Connection
+  parameters:
+    source: sync/image_out
+    target: input_compositor/image_in
+- type: nvidia::gxf::Connection
+  parameters:
+    source: sync/cam_info_out
+    target: input_compositor/cam_info_in
 - name: edge1
   type: nvidia::gxf::Connection
   parameters:
@@ -209,6 +275,10 @@ components:
   type: nvidia::gxf::Connection
   parameters:
     source: crop_and_resizer/data_transmitter
+    target: streamsync/rx
+- type: nvidia::gxf::Connection
+  parameters:
+    source: streamsync/tx
     target: splitter/data_receiver
 - name: edge4
   type: nvidia::gxf::Connection
@@ -225,12 +295,11 @@ name: utils
 components:
 - name: clock
   type: nvidia::gxf::RealtimeClock
-- type: nvidia::gxf::MultiThreadScheduler
+- type: nvidia::gxf::EventBasedScheduler
   parameters:
     clock: clock
     stop_on_deadlock: false
-    check_recession_period_ms: 1
-    worker_thread_number: 2
+    worker_thread_number: 4
 - type: nvidia::gxf::JobStatistics
   parameters:
     clock: clock

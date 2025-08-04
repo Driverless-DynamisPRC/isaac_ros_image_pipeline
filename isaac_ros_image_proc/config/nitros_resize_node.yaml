@@ -21,7 +21,7 @@ components:
 - name: image_in
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 2
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: image_in
@@ -29,7 +29,7 @@ components:
 - name: camera_info_in
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 2
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: camera_info_in
@@ -37,7 +37,7 @@ components:
 - name: image_out
   type: nvidia::gxf::DoubleBufferTransmitter
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
   parameters:
     transmitter: image_out
@@ -45,7 +45,7 @@ components:
 - name: camera_info_out
   type: nvidia::gxf::DoubleBufferTransmitter
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
   parameters:
     transmitter: camera_info_out
@@ -60,7 +60,7 @@ components:
 - name: image_in
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: image_in
@@ -68,7 +68,7 @@ components:
 - name: cam_info_in
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: cam_info_in
@@ -76,7 +76,7 @@ components:
 - name: out
   type: nvidia::gxf::DoubleBufferTransmitter
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
   parameters:
     transmitter: out
@@ -93,7 +93,7 @@ components:
 - name: data_receiver
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: data_receiver
@@ -101,7 +101,7 @@ components:
 - name: data_transmitter
   type: nvidia::gxf::DoubleBufferTransmitter
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
   parameters:
     transmitter: data_transmitter
@@ -120,7 +120,7 @@ components:
     reserved_size: 1
     max_size: 1
 - name: StreamResize
-  type: nvidia::isaac::tensor_ops::Resize
+  type: nvidia::isaac::tensor_ops::StreamResize
   parameters:
     output_width: 400
     output_height: 300
@@ -134,6 +134,7 @@ components:
     output_adapter: resource/adapter
     output_name: "image"
     stream_pool: cuda_stream
+    stream: resource/stream
 - type: nvidia::gxf::MemoryAvailableSchedulingTerm
   parameters:
     allocator: pool
@@ -143,8 +144,12 @@ name: streamsync
 components:
 - name: rx
   type: nvidia::gxf::DoubleBufferReceiver
+  parameters:
+    capacity: 12
 - name: tx
   type: nvidia::gxf::DoubleBufferTransmitter
+  parameters:
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: rx
@@ -163,7 +168,7 @@ components:
 - name: data_receiver
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::MessageAvailableSchedulingTerm
   parameters:
     receiver: data_receiver
@@ -171,7 +176,7 @@ components:
 - name: image_transmitter
   type: nvidia::gxf::DoubleBufferTransmitter
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
   parameters:
     transmitter: image_transmitter
@@ -179,7 +184,7 @@ components:
 - name: camera_model_transmitter
   type: nvidia::gxf::DoubleBufferTransmitter
   parameters:
-    capacity: 1
+    capacity: 12
 - type: nvidia::gxf::DownstreamReceptiveSchedulingTerm
   parameters:
     transmitter: camera_model_transmitter
@@ -196,11 +201,12 @@ components:
 - name: signal
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
-- type: nvidia::gxf::MessageAvailableSchedulingTerm
-  parameters:
-    receiver: signal
-    min_size: 1
+    capacity: 12
+    policy: 0
+#- type: nvidia::gxf::MessageAvailableSchedulingTerm
+#  parameters:
+#    receiver: signal
+#    min_size: 1
 - name: sink
   type: nvidia::isaac_ros::MessageRelay
   parameters:
@@ -211,11 +217,12 @@ components:
 - name: signal
   type: nvidia::gxf::DoubleBufferReceiver
   parameters:
-    capacity: 1
-- type: nvidia::gxf::MessageAvailableSchedulingTerm
-  parameters:
-    receiver: signal
-    min_size: 1
+    capacity: 12
+    policy: 0
+#- type: nvidia::gxf::MessageAvailableSchedulingTerm
+#  parameters:
+#    receiver: signal
+#    min_size: 1
 - name: sink
   type: nvidia::isaac_ros::MessageRelay
   parameters:
@@ -234,31 +241,38 @@ components:
     engine_type: "GPU"
 ---
 components:
-- type: nvidia::gxf::Connection
+- name: edge0
+  type: nvidia::gxf::Connection
   parameters:
     source: sync/image_out
     target: input_compositor/image_in
-- type: nvidia::gxf::Connection
+- name: edge1
+  type: nvidia::gxf::Connection
   parameters:
     source: sync/camera_info_out
     target: input_compositor/cam_info_in
-- type: nvidia::gxf::Connection
+- name: edge2
+  type: nvidia::gxf::Connection
   parameters:
     source: input_compositor/out
     target: imageResizer/data_receiver
-- type: nvidia::gxf::Connection
+- name: edge3
+  type: nvidia::gxf::Connection
   parameters:
     source: imageResizer/data_transmitter
     target: streamsync/rx
-- type: nvidia::gxf::Connection
+- name: edge4
+  type: nvidia::gxf::Connection
   parameters:
     source: streamsync/tx
     target: splitter/data_receiver
-- type: nvidia::gxf::Connection
+- name: edge5
+  type: nvidia::gxf::Connection
   parameters:
     source: splitter/image_transmitter
     target: image_sink/signal
-- type: nvidia::gxf::Connection
+- name: edge6
+  type: nvidia::gxf::Connection
   parameters:
     source: splitter/camera_model_transmitter
     target: camera_info_sink/signal
@@ -271,7 +285,7 @@ components:
   parameters:
     clock: clock
     stop_on_deadlock: false
-    worker_thread_number: 2
+    worker_thread_number: 4
 - type: nvidia::gxf::JobStatistics
   parameters:
     clock: clock

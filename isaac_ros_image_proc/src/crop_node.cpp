@@ -39,11 +39,11 @@ namespace image_proc
 
 using nvidia::gxf::optimizer::GraphIOGroupSupportedDataTypesInfoList;
 
-constexpr char INPUT_CAM_COMPONENT_KEY[] = "input_compositor/cam_info_in";
+constexpr char INPUT_CAM_COMPONENT_KEY[] = "sync/cam_info_in";
 constexpr char INPUT_DEFAULT_CAM_INFO_FORMAT[] = "nitros_camera_info";
 constexpr char INPUT_CAM_TOPIC_NAME[] = "camera_info";
 
-constexpr char INPUT_COMPONENT_KEY[] = "input_compositor/image_in";
+constexpr char INPUT_COMPONENT_KEY[] = "sync/image_in";
 constexpr char INPUT_DEFAULT_TENSOR_FORMAT[] = "nitros_image_bgr8";
 constexpr char INPUT_TOPIC_NAME[] = "image";
 
