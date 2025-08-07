@@ -203,10 +203,10 @@ components:
   parameters:
     capacity: 12
     policy: 0
-#- type: nvidia::gxf::MessageAvailableSchedulingTerm
-#  parameters:
-#    receiver: signal
-#    min_size: 1
+- type: nvidia::gxf::MessageAvailableSchedulingTerm
+  parameters:
+    receiver: signal
+    min_size: 1
 - name: sink
   type: nvidia::isaac_ros::MessageRelay
   parameters:
@@ -219,10 +219,9 @@ components:
   parameters:
     capacity: 12
     policy: 0
-#- type: nvidia::gxf::MessageAvailableSchedulingTerm
-#  parameters:
-#    receiver: signal
-#    min_size: 1
+- type: nvidia::gxf::PeriodicSchedulingTerm
+  parameters:
+    recess_period: 25000000
 - name: sink
   type: nvidia::isaac_ros::MessageRelay
   parameters:
